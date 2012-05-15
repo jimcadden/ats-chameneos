@@ -53,16 +53,17 @@ translate_color2 (c1, c2) =
 /* action of chameneos that entered pool first*/
 implement
 chameneos_a {n} (pf1, pf2 | n) = let
+  //
   val () = set_shared_color(pf1, pf2 | get_chameneos_color(pf1, pf2 | n))
   val () = set_shared_id(pf1, pf2 | n)
   val () = wait_for_chameneos() // block until signaled by secound chameneos
-  val nc = translate_color2(int_to_color(get_chameneos_color(pf1, pf2 | n)),
-  int_to_color(get_shared_color(pf1, pf2 |))) 
-  val n2= get_shared_id(pf1, pf2 | ) 
-  val () = do_exchange(pf1, pf2 | n, n2, color_to_int(nc)) 
-  val () = set_chameneos_color(pf1, pf2 | n,color_to_int(nc)) 
+  val n2 = get_shared_id (pf1, pf2 |)
+  val c1 = int_to_color(get_chameneos_color(pf1, pf2 | n))
+  val c2 = int_to_color(get_shared_color(pf1, pf2 |))
+  val () = register_exchange(pf1, pf2 | n, n2)
   val () = reset_pool()
 in
+  translate_color2(c1,c2) 
 end
 
 (* ****** ****** *)
@@ -71,15 +72,27 @@ end
 implement
 chameneos_b {n} (pf1, pf2 | n) = let
   val oc = get_chameneos_color(pf1, pf2 | n)
-  val nc = translate_color2(int_to_color(oc),
-  int_to_color(get_shared_color(pf1, pf2 |))) 
-  val n2= get_shared_id(pf1, pf2 | ) 
-  val () = do_exchange(pf1, pf2 | n, n2, color_to_int(nc)) 
-  val () = set_chameneos_color(pf1, pf2 | n,color_to_int(nc)) 
+  val c1 = int_to_color(get_shared_color(pf1, pf2 | ))
+  val n2 = get_shared_id (pf1, pf2 |)
   val () = set_shared_color(pf1, pf2 | oc)
   val () = set_shared_id(pf1, pf2 | n)
-  val () = signal_chameneos() // once done, wake up other chameneos
+  val () = register_exchange(pf1, pf2 | n, n2)
+  val () = signal_chameneos() // once done, unlock & wake up other chameneos
 in
+  translate_color2(int_to_color(oc),c1) 
+end
+
+(* ****** ****** *)
+
+implement 
+meet_chameneos {n} (pf, poolf | n) = let
+  // check if there already is a chameneos in the pool
+  // XXX:check occupancy locks
+  val nc =  if (check_occupancy(pf, poolf| (*void*)) = 0) 
+                      then chameneos_a(pf, poolf | n) 
+                      else chameneos_b(pf, poolf | n)
+in
+  set_chameneos_color(pf, poolf | n, color_to_int(nc)) 
 end
 
 (* ****** ****** *)
@@ -89,27 +102,17 @@ chameneos_play {n} (pf | n) = let
 fun loop ( pf: chameneos_v | n: int n) : void = let
   // checks to prevent chameneos from locking when we've hit our max meetup
   val (poolf | pooln) = enter_pool(pf | )
-  val () = if ( pooln = 0) then
-    /*TODO: move check_match_count into the a/b functions */
-    ( if  (check_match_count(n) = 0) then // this maybe unnessessary 
-          ( 
-              // check if there already is a chameneos in the pool
-              if (check_occupancy(pf, poolf|) = 0) 
-                then chameneos_a(pf, poolf | n) 
-                else chameneos_b(pf, poolf| n)
-          )
-    )
-  
+  val () = if (pooln = 0 ) then meet_chameneos(pf, poolf | n)
   val () = leave_pool(pf, poolf | )
-  in
-    if (check_match_count(n) = 0) 
-      then loop (pf | n)  
-      else kill_chameneos(pf | n)
+in
+  /* check if we should loop again */
+    if (pooln = 1) 
+      then kill_chameneos(pf | n) 
+      else loop (pf | n)  
   end (* end of [loop] *)
 in
   loop (pf | n)
 end // end of [do_phil]
-//
 
 (* ****** ****** *)
 

@@ -61,15 +61,17 @@ fun leave_pool (pf: !chameneos_v, pf2: inpool_v | (*void*)): void ="leave_pool"
 
 (* chameneos actions *)
 fun chameneos_play {n:int} (pf: chameneos_v | n: int n): void = "chameneos_play"
-fun chameneos_a {n:int} (pf1: !chameneos_v, pf2: !inpool_v | n: int n): void = "chameneos_a"
-fun chameneos_b {n:int} (pf1: !chameneos_v, pf2: !inpool_v | n: int n): void = "chameneos_b"
+fun meet_chameneos {n:int} (pf: !chameneos_v, pf2: !inpool_v | n: int n): void = "meet_chameneos"
+fun chameneos_a {n:int} (pf1: !chameneos_v, pf2: !inpool_v | n: int n): color = "chameneos_a"
+fun chameneos_b {n:int} (pf1: !chameneos_v, pf2: !inpool_v | n: int n): color = "chameneos_b"
 fun kill_chameneos (pf:chameneos_v | n:int): void = "kill_chameneos"
 // read access to shared data
 fun get_shared_color (pf: !chameneos_v, pf1: !inpool_v | (*void*)): int = "get_shared_color"
 fun get_shared_id (pf: !chameneos_v, pf1: !inpool_v | (*void*)): int = "get_shared_id"
 fun get_chameneos_color (pf: !chameneos_v, pf1: !inpool_v | n: int): int = "get_chameneos_color"
-fun do_exchange(pf: !chameneos_v, pf1: !inpool_v |n1: int , n2: int, c:int): void = "do_exchange"
+fun do_exchange(pf: !chameneos_v, pf1: !inpool_v |n1: int , c:int): void = "do_exchange"
 // write access to shared data 
+fun register_exchange(pf: !chameneos_v, pf1: !inpool_v |n1: int , n2:int): void = "register_exchange"
 fun set_shared_color  {n:int} (pf: !chameneos_v, pf1: !inpool_v | n: int): void = "set_shared_color"
 fun set_shared_id (pf: !chameneos_v, pf1: !inpool_v | n: int): void = "set_shared_id"
 fun set_chameneos_color (pf: !chameneos_v, pf1: !inpool_v | n1: int , n2: int): void = "set_chameneos_color"
